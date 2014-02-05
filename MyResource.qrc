@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>images/folder.png</file>
+        <file>images/note.png</file>
+        <file>images/notepad.png</file>
+        <file>images/red_flag.png</file>
+        <file>images/harbour-mynotes.png</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,25 @@
+Name: harbour-mynotes
+Summary: MyNotes Sailfish OS Application
+Version: 1.0
+Release: 1
+Group: Qt/Qt
+License: LICENSE
+Sources:
+- '%{name}-%{version}.tar.bz2'
+Description: |
+  Short description of my SailfishOS Application
+Configure: none
+Builder: qtc5
+PkgConfigBR:
+- sailfishapp
+- Qt5Quick
+- Qt5Qml
+- Qt5Core
+Requires:
+- sailfishsilica-qt5
+Files:
+- /usr/share/harbour-mynotes
+- /usr/share/applications/harbour-mynotes.desktop
+- /usr/share/icons/hicolor/86x86/apps
+- /usr/bin/harbour-mynotes
+PkgBR: []

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Name=My Notes
+Icon=harbour-mynotes
+Exec=harbour-mynotes
+

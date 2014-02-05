@@ -1,0 +1,8 @@
+%dir /usr/lib/debug
+%dir /usr/lib/debug/.build-id
+%dir /usr/lib/debug/.build-id/1e
+%dir /usr/lib/debug/usr
+%dir /usr/lib/debug/usr/bin
+/usr/lib/debug/.build-id/1e/b1366440b8ae29c585297cc0b6603b967eeb75.debug
+/usr/lib/debug/.build-id/1e/b1366440b8ae29c585297cc0b6603b967eeb75
+/usr/lib/debug/usr/bin/harbour-mynotes.debug
