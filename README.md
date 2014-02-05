@@ -1,15 +1,13 @@
-StopWatch
+My Notes
 =========
 
-StopWatch is a application for Jolla Sailfish OS, developed using Qt/QML.
-StopWatch's UI is written purely in QML(Qt5) and the application logic using JavaScript/C++.
+MyNotes is a application for Jolla Sailfish OS, developed using Qt/QML. 
+MyNotes's UI is written purely in QML(Qt5) and the application logic using C++
 
 ToDo
 ----
 
 * allow sending email from the app
-
-
 
 Downloads
 ---------
@@ -17,9 +15,9 @@ Downloads
 License
 -------
 
-StopWatch license:
+My Notes license:
 
-    StopWatch - application for Sailfish OS smartphones developed using Qt/QML
+    My Notes - application for Sailfish OS smartphones developed using Qt/QML
     Copyright (C) 2014 Mikko Leppänen
 
     This program is free software: you can redistribute it and/or modify
