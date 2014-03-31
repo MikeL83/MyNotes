@@ -3,13 +3,16 @@
 
 #include <QObject>
 #include <QtSql/QSqlDatabase>
+#include <QSharedPointer>
 #include <QStringList>
 #include <QVariantList>
 #include "appsettings.h"
 
 class QString;
+class QSqlQuery;
 
-class MyNotesDB : public QObject {
+class MyNotesDB : public QObject
+{
     Q_OBJECT public : explicit MyNotesDB(QObject *parent = 0);
 
     Q_INVOKABLE QStringList getMainFolders() const;
@@ -32,7 +35,7 @@ class MyNotesDB : public QObject {
                                 const QString &, const QString &,
                                 const QString &, const QString &,
                                 const QString &, QString foldername = "") const;
-    Q_INVOKABLE bool renameFolder(const QString &, const QString &) const;
+    //Q_INVOKABLE bool renameFolder(const QString &, const QString &) const;
 
     Q_INVOKABLE QStringList getSubfolders(const QString &foldername) const;
 
@@ -43,8 +46,8 @@ class MyNotesDB : public QObject {
     Q_INVOKABLE QVariantList getNoteData(const QString &, const QString &,
                                          QString foldername = "") const;
 
-    Q_INVOKABLE QVariantList findNote(const QString &, const QString &,
-                                      const QString &) const;
+    Q_INVOKABLE QVariantList
+    findNote(const QString &, const QString &, const QString &) const;
 
     Q_INVOKABLE QVariantList getFlaggedNotes() const;
 
@@ -57,6 +60,8 @@ class MyNotesDB : public QObject {
     Q_INVOKABLE QVariantList checkDueDates() const;
 
   protected:
+    QSqlQuery prepare(const QString& statement) const;
+    bool execute(QSqlQuery &query) const;
     void createConnection();
     void createInitialData() const;
     void updateFoldersTable(const QString &, int issubfolder = 0,
@@ -65,7 +70,7 @@ class MyNotesDB : public QObject {
     QSqlDatabase db;
     const u_int32_t MagicNumber;
     const QVariant Invalid;
-    AppSettings appSettings;
+    QSharedPointer<AppSettings> appSettings;
 };
 
 #endif // MYNOTESDB_H

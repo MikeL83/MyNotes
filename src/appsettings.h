@@ -7,7 +7,8 @@
 class QString;
 class QSettings;
 
-class AppSettings : public QObject {
+class AppSettings : public QObject
+{
     Q_OBJECT
   public:
     explicit AppSettings(QObject *parent = 0);

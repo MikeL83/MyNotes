@@ -24,6 +24,19 @@ Dialog {
         PullDownMenu {
             id: pulleymenu
             MenuItem {
+                text: qsTr("Clear notification")
+                onClicked: {
+                    _duetime: ""
+                    _duedate: ""
+                    duedate = []
+                    setmenu.text = qsTr("Set notification");
+                    mynotesdb.updateNote(titleField.text,textarea.text,date,
+                                        String(flagged.value),notedata[0],
+                                         notedata[2],"",foldername);
+                }
+            }
+            MenuItem {
+                id: setmenu
                 text: qsTr("Set notification")
                 onClicked: {
                     pageStack.push(Qt.resolvedUrl("SetNotificationDialog.qml"),
@@ -57,6 +70,7 @@ Dialog {
                  width: dialog.width
                  font.pixelSize: Theme.fontSizeLarge
                  placeholderText: qsTr("Add title...")
+                 label: qsTr("Note title")
                  validator: RegExpValidator { regExp: /^[0-9\_\#\-A-Za-z\s]+$/ }
                  errorHighlight: text ? !acceptableInput : false
                  inputMethodHints: Qt.ImhNoPredictiveText

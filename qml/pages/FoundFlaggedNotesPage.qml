@@ -52,7 +52,7 @@ Page {
         BackgroundItem {
             id: bgItem
             width: listview.width
-            height: col.childrenRect.height
+            height: Theme.itemSizeMedium
             Column {
                 id: col
                 spacing: 0
@@ -75,6 +75,7 @@ Page {
                         text: name
                         font.pixelSize: Theme.fontSizeMedium
                         transform: Translate{x:20}
+                        color: bgItem.highlighted ? Theme.highlightColor : Theme.primaryColor
                     }
                 }
                 Label {

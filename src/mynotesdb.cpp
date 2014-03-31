@@ -15,174 +15,176 @@
 #include <QMap>
 #include <QStandardPaths>
 #include <QDir>
+#include <QDebug>
 #include "mynotesdb.h"
 #include "error.h"
 
-MyNotesDB::MyNotesDB(QObject *parent)
-    : QObject(parent), MagicNumber(0xFA832109) {
+MyNotesDB::MyNotesDB(QObject *parent) : QObject(parent), MagicNumber(0xFA832109)
+{
+    appSettings = QSharedPointer<AppSettings>(new AppSettings);
     createConnection();
 }
 
-void MyNotesDB::createConnection() {
+void MyNotesDB::createConnection()
+{
     db = QSqlDatabase::addDatabase("QSQLITE");
-    QString pathToDatabase = "";
-    if (!QDir().exists(
-            QStandardPaths::writableLocation(QStandardPaths::DataLocation))) {
-        if (!QDir().mkpath(QStandardPaths::writableLocation(
-                QStandardPaths::DataLocation))) {
-            qWarning("Cannot create directory %s",
-                     qPrintable(QStandardPaths::writableLocation(
-                         QStandardPaths::DataLocation)));
-        }
-    } else {
-        pathToDatabase =
-            QStandardPaths::writableLocation(QStandardPaths::DataLocation) +
-            "/" + "_mynotes.db";
+    QString databaseDir =
+        QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    const QString dbFileName = QString("_mynotes.db");
+    QDir dir(databaseDir);
+    if (!QDir().mkpath(databaseDir)) {
+        qWarning("Cannot create directory %s",
+                 qPrintable(QStandardPaths::writableLocation(
+                     QStandardPaths::DataLocation)));
+        return;
     }
-
-    if (!pathToDatabase.isEmpty())
-        db.setDatabaseName(pathToDatabase);
-
+    //db.setDatabaseName(dir.absoluteFilePath(dbFileName));
+    db.setDatabaseName(":memory:");
     if (!db.open())
-        qFatal("Error while opening the database: %s", qPrintable(db.lastError().text()));
+        qFatal("Error while opening the database: %s",
+               qPrintable(db.lastError().text()));
 
     createInitialData();
 }
 
-void MyNotesDB::createInitialData() const {
-    QSqlQuery query;
-    query.prepare("CREATE TABLE IF NOT EXISTS "
-                  "Allnotes (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                  "title TEXT NOT NULL, "
-                  "note CLOB NOT NULL, "
-                  "date TEXT NOT NULL, "
-                  "flagged INTEGER NOT NULL, "
-                  "duedate TEXT NOT NULL)");
-    if (!query.exec())
-        qFatal("Failed to create table Allnotes\n%s",
-               qPrintable(query.lastError().text()));
+QSqlQuery MyNotesDB::prepare(const QString& statement) const
+{
+    QSqlQuery query(db);
+    query.setForwardOnly(true);
+    if (!query.prepare(statement)) {
+        qWarning() << Q_FUNC_INFO << "failed to prepare query";
+        qWarning() << query.lastQuery();
+        qWarning() << query.lastError().text();
+        return QSqlQuery();
+    }
+    return query;
+}
+
+bool MyNotesDB::execute(QSqlQuery &query) const
+{
+    if (!query.exec()) {
+        qWarning() << Q_FUNC_INFO << "failed execute query";
+        qWarning() << query.lastQuery();
+        qWarning() << query.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+void MyNotesDB::createInitialData() const
+{
+    QSqlQuery query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                              "Allnotes (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                              "title TEXT NOT NULL, "
+                              "note CLOB NOT NULL, "
+                              "date TEXT NOT NULL, "
+                              "flagged INTEGER NOT NULL, "
+                              "duedate TEXT NOT NULL);"));
+    execute(query);
     if (db.tables().indexOf("Folders_" + QString::number(MagicNumber)) == -1) {
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Hobbies (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Hobbies\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Home (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Home\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Miscellaneous (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Miscellaneous\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Personal (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Personal\%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Shopping (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Shopping\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Tasks\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Travel (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Travel\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Work (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table Work\n%s",
-                   qPrintable(query.lastError().text()));
-        query.prepare("CREATE TABLE IF NOT EXISTS "
-                      "Folders_" +
-                      QString::number(MagicNumber) +
-                      " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "name TEXT NOT NULL, "
-                      "issubfolder INTEGER NOT NULL, "
-                      "parent TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table folders\n%s",
-                   qPrintable(query.lastError().text()));
+        QSqlQuery query =
+            prepare(QString("CREATE TABLE IF NOT EXISTS "
+                    "Hobbies (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "title TEXT NOT NULL, "
+                    "note CLOB NOT NULL, "
+                    "date TEXT NOT NULL, "
+                    "flagged INTEGER NOT NULL, "
+                    "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Home (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Miscellaneous (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Personal (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Shopping (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Travel (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Work (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);"));
+        execute(query);
+        query = prepare(QString("CREATE TABLE IF NOT EXISTS "
+                        "Folders_") +
+                        QString::number(MagicNumber) +
+                        QString(" (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "name TEXT NOT NULL, "
+                        "issubfolder INTEGER NOT NULL, "
+                        "parent TEXT NOT NULL);"));
+        execute(query);
         QSqlQueryModel model;
-        model.setQuery("SELECT * FROM Folders_" + QString::number(MagicNumber));
+        model.setQuery("SELECT * FROM Folders_" + QString::number(MagicNumber) +
+                       ";");
         if (model.rowCount() == 0) {
-            QStringList tmp = { "Hobbies", "Home", "Miscellaneous", "Personal",
-                                "Shopping", "Tasks", "Travel", "Work" };
+            QStringList tmp = { "Hobbies",  "Home",     "Miscellaneous",
+                                "Personal", "Shopping", "Tasks",
+                                "Travel",   "Work" };
             QSqlQuery query;
             for (auto &value : tmp) {
-                query.prepare("INSERT INTO Folders_" +
-                              QString::number(MagicNumber) +
-                              " (name, issubfolder, parent) "
-                              "VALUES (:name, :issubfolder, :parent)");
+                query = prepare(QString("INSERT INTO Folders_") +
+                                QString::number(MagicNumber) +
+                                QString(" (name, issubfolder, parent) "
+                                "VALUES (:name, :issubfolder, :parent);"));
                 query.bindValue(":name", value);
                 query.bindValue(":issubfolder", 0);
                 query.bindValue(":parent", "root");
-                if(!query.exec()) {
-                    qWarning("Failed to insert table %s\n%s",
-                             qPrintable(value),
-                             qPrintable(query.lastError().text()));
-                }
+                execute(query);
             }
         }
     }
 }
 
-QStringList MyNotesDB::getMainFolders() const {
+QStringList MyNotesDB::getMainFolders() const
+{
     QSqlQuery query;
-    query.prepare("SELECT name, issubfolder FROM Folders_" +
-                  QString::number(MagicNumber));
+    query = prepare(QString("SELECT name, issubfolder FROM Folders_%1;")
+                    .arg(QString::number(MagicNumber)));
     QStringList db_tables;
-    if (!query.exec())
-        qWarning("%s", qPrintable(query.lastError().text()));
+    if (!execute(query))
+        return db_tables;
     while (query.next()) {
         if (query.value(0) != Invalid && query.value(1) != Invalid &&
             query.value(1).toInt() == 0) {
@@ -193,19 +195,19 @@ QStringList MyNotesDB::getMainFolders() const {
     return db_tables;
 }
 
-bool MyNotesDB::addFolder(const QString &foldername) const {
-    if (!db.tables().contains(foldername) && !foldername.startsWith("sqlite_")) {
+bool MyNotesDB::addFolder(const QString &foldername) const
+{
+    if (!db.tables().contains(foldername) &&
+        !foldername.startsWith("sqlite_")) {
         QSqlQuery query;
-        query.prepare("CREATE TABLE IF NOT EXISTS'" + foldername +
-                      "' (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table %s\n%s", qPrintable(foldername),
-                     qPrintable(query.lastError().text()));
+        query = prepare("CREATE TABLE IF NOT EXISTS'" + foldername +
+                        "' (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);");
+        execute(query);
         updateFoldersTable(foldername);
     } else {
         qWarning(
@@ -217,19 +219,23 @@ bool MyNotesDB::addFolder(const QString &foldername) const {
 }
 
 bool MyNotesDB::addSubFolder(const QString &foldername,
-                             const QString &parent) const {
-    if (!db.tables().contains(foldername) && !foldername.startsWith("sqlite_")) {
+                             const QString &parent) const
+{
+    if (!db.tables().contains(foldername) &&
+        !foldername.startsWith("sqlite_")) {
         QSqlQuery query;
-        query.prepare("CREATE TABLE IF NOT EXISTS'" + foldername +
-                      "' (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                      "title TEXT NOT NULL, "
-                      "note CLOB NOT NULL, "
-                      "date TEXT NOT NULL, "
-                      "flagged INTEGER NOT NULL, "
-                      "duedate TEXT NOT NULL)");
-        if (!query.exec())
-            qFatal("Failed to create table %s", qPrintable(foldername));
-        updateFoldersTable(foldername, 1, parent);
+        query = prepare("CREATE TABLE IF NOT EXISTS'" + foldername +
+                        "' (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "title TEXT NOT NULL, "
+                        "note CLOB NOT NULL, "
+                        "date TEXT NOT NULL, "
+                        "flagged INTEGER NOT NULL, "
+                        "duedate TEXT NOT NULL);");
+        if (execute(query)) {
+            updateFoldersTable(foldername, 1, parent);
+        } else {
+            return false;
+        }
     } else {
         qWarning("There already exists a folder named %s. Please choose "
                  "another name for the subfolder.",
@@ -240,142 +246,121 @@ bool MyNotesDB::addSubFolder(const QString &foldername,
 }
 
 void MyNotesDB::deleteFolderContent(const QString &foldername,
-                                    const QString &parent) const {
+                                    const QString &parent) const
+{
     if (!getSubfolders(foldername).isEmpty()) {
         for (auto &item : getSubfolders(foldername)) {
             deleteFolderContent(item, foldername);
         }
     }
     QSqlQuery query;
-    query.prepare("DELETE FROM '" + foldername + "'");
-    if (!query.exec()) {
-        qWarning("Could not delete data from table %s.",
-                 qPrintable(foldername));
-    }
+    query = prepare("DELETE FROM '" + foldername + "';");
+    execute(query);
 
     if (!parent.isEmpty()) {
         QSqlQuery query;
-        query.prepare("DELETE FROM Folders_" + QString::number(MagicNumber) +
-                      " WHERE name ='" + foldername + "' AND parent ='" +
-                      parent + "'");
-        if (!query.exec()) {
-            qWarning("Could not delete content from folder %s.",
-                     qPrintable(foldername));
-        }
-        query.prepare("DROP TABLE IF EXISTS '" + foldername + "'");
-        if (!query.exec()) {
-            qWarning("Could not delete table %s.",
-                     qPrintable(foldername));
-        }
+        query = prepare("DELETE FROM Folders_" + QString::number(MagicNumber) +
+                        " WHERE name = ? AND parent = ?;");
+        query.bindValue(0, foldername);
+        query.bindValue(1, parent);
+        execute(query);
+        query = prepare("DROP TABLE IF EXISTS '" + foldername + "';");
+        execute(query);
     }
 }
 
 void MyNotesDB::removeFolder(const QString &foldername,
-                             const QString &parent) const {
+                             const QString &parent) const
+{
     if (!getSubfolders(foldername).isEmpty()) {
         for (auto &item : getSubfolders(foldername)) {
             deleteFolderContent(item, foldername);
         }
     }
     QSqlQuery query;
-    query.prepare("DELETE FROM '" + foldername + "'");
-    if (!query.exec()) {
-        qWarning("Could not delete data from table %s.",
-                 qPrintable(foldername));
-    }
-    query.prepare("DELETE FROM Folders_" + QString::number(MagicNumber) +
-                  " WHERE name ='" + foldername + "' AND parent ='" +
-                  parent + "'");
-    if (!query.exec()) {
-        qWarning("Could not delete content from folder %s.",
-                 qPrintable(foldername));
-    }
-    query.prepare("DROP TABLE IF EXISTS '" + foldername + "'");
-    if (!query.exec()) {
-        qWarning("Could not delete table %s.",
-                 qPrintable(foldername));
-    }
-
+    query = prepare("DELETE FROM '" + foldername + "';");
+    execute(query);
+    query = prepare("DELETE FROM Folders_" + QString::number(MagicNumber) +
+                    " WHERE name = ? AND parent = ?;");
+    query.bindValue(0, foldername);
+    query.bindValue(1, parent);
+    execute(query);
+    query = prepare("DROP TABLE IF EXISTS '" + foldername + "';");
+    execute(query);
 }
 
 void MyNotesDB::updateFoldersTable(const QString &foldername, int issubfolder,
-                                   QString parent, QString action) const {
+                                   QString parent, QString action) const
+{
     if (action.compare("add") == 0) {
         QSqlQuery query;
-        query.prepare("INSERT INTO Folders_" + QString::number(MagicNumber) +
-                      " (name, issubfolder, parent) "
-                      "VALUES (:name, :issubfolder, :parent)");
+        query = prepare("INSERT INTO Folders_" + QString::number(MagicNumber) +
+                        " (name, issubfolder, parent) "
+                        "VALUES (:name, :issubfolder, :parent);");
         query.bindValue(":name", foldername);
         query.bindValue(":issubfolder", issubfolder);
         query.bindValue(":parent", parent);
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        execute(query);
     }
 }
 
 void MyNotesDB::addNewNote(const QString &foldername, const QString &title,
                            const QString &note, int flagged,
-                           const QString &duedate) const {
-    QSqlQuery query;
-    query.prepare("INSERT INTO '" + foldername +
-                  "' (title, note, date, flagged, duedate) "
-                  "VALUES (:title, :note, :date, :flagged, :duedate)");
-    query.bindValue(":title", title);
-    query.bindValue(":note", note);
+                           const QString &duedate) const
+{
+    QSqlQuery query = prepare(QString("INSERT INTO %1 "
+                    "(title, note, date, flagged, duedate) "
+                    "VALUES (?,?,?,?,?);").arg(foldername));
+    query.bindValue(0, title);
+    query.bindValue(1, note);
     QDate d = QDate::currentDate();
     QTime t = QTime::currentTime();
-    query.bindValue(
-        ":date", d.toString("ddd d MMM yyyy") + ", " + t.toString("hh:mm:ss"));
-    query.bindValue(":flagged", flagged);
-    query.bindValue(":duedate", duedate);
-    if (!query.exec())
-        qWarning("Could not add a new note %s into folder %s\n%s",
-                 qPrintable(title),
-                 qPrintable(foldername),
-                 qPrintable(query.lastError().text()));
+    query.bindValue(2, d.toString("ddd d MMM yyyy") + QString(", ") +
+                                 t.toString("hh:mm:ss"));
+    query.bindValue(3, flagged);
+    query.bindValue(4, duedate);
+    execute(query);
 }
 
 void MyNotesDB::deleteNote(const QString &foldername, const QString &title,
-                           const QString &date) const {
+                           const QString &date) const
+{
     if (foldername.compare("") != 0) {
         QSqlQuery query;
-        query.prepare("DELETE FROM '" + foldername + "' WHERE title='" + title +
-                      "' AND date='" + date + "'");
-        if (!query.exec())
-            qWarning("Could not delete note %s from folder %s\n%s",
-                     qPrintable(title),
-                     qPrintable(foldername),
-                     qPrintable(query.lastError().text()));
+        query = prepare("DELETE FROM '" + foldername + "' WHERE title = ? "
+                                                       "AND date = ?;");
+        query.bindValue(0, title);
+        query.bindValue(1, date);
+        execute(query);
     } else {
         QSqlQuery query;
-        query.prepare("SELECT name FROM Folders_" +
-                      QString::number(MagicNumber));
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT name FROM Folders_" +
+                        QString::number(MagicNumber) + ";");
+        if (!execute(query))
+            return;
+        QSqlQuery queryForNote;
         while (query.next()) {
-            QSqlQuery queryForNote;
             if (query.value(0) != Invalid) {
-                queryForNote.prepare("DELETE FROM '" +
-                                     query.value(0).toString() +
-                                     "' WHERE title='" + title + "' AND " +
-                                     " date='" + date + "'");
-                if (!queryForNote.exec())
-                    qWarning("Could not delete note %s from folder %s\n%s",
-                             qPrintable(title),
-                             qPrintable(foldername),
-                             qPrintable(queryForNote.lastError().text()));
+                queryForNote =
+                    prepare("DELETE FROM '" + query.value(0).toString() +
+                            "' WHERE title = ? AND date = ?;");
+                queryForNote.bindValue(0, title);
+                queryForNote.bindValue(1, date);
+                execute(queryForNote);
             }
         }
     }
 }
 
-QStringList MyNotesDB::getSubfolders(const QString &foldername) const {
+QStringList MyNotesDB::getSubfolders(const QString &foldername) const
+{
     QSqlQuery query;
-    query.prepare("SELECT name FROM Folders_" + QString::number(MagicNumber) +
-                  " WHERE parent='" + foldername + "'");
-    if (!query.exec())
-        throw MyNotes::Error(query.lastError().text());
+    query = prepare(QString("SELECT name FROM Folders_%1 WHERE parent = ?;")
+                    .arg(QString::number(MagicNumber)));
+    query.bindValue(0, foldername);
     QStringList subfolders;
+    if (!execute(query))
+        return subfolders;
     while (query.next()) {
         if (query.value(0) != Invalid)
             subfolders.append(query.value(0).toString());
@@ -384,28 +369,28 @@ QStringList MyNotesDB::getSubfolders(const QString &foldername) const {
     return subfolders;
 }
 
-QVariantList MyNotesDB::getFolderNotes(const QString &foldername) const {
-    QSqlQuery query;
-    query.prepare("SELECT title, date, flagged FROM '" + foldername + "'");
-    if (!query.exec())
-        throw MyNotes::Error(query.lastError().text());
+QVariantList MyNotesDB::getFolderNotes(const QString &foldername) const
+{
+    QSqlQuery query = prepare(QString("SELECT title, date, flagged FROM %1;").arg(foldername));
     QVariantList notes;
+    if (!execute(query))
+        return notes;
     QMap<QString, QVariant> map;
     while (query.next()) {
         if (query.value(0) != Invalid && query.value(1) != Invalid &&
             query.value(2) != Invalid) {
-            if (appSettings.readSortingOrder().compare("name") == 0) {
-                map.insert(
-                    query.value(0).toString(),
-                    QVariant(QStringList() << query.value(0).toString()
-                                           << query.value(1).toString()
-                                           << query.value(2).toString()));
+            if (appSettings->readSortingOrder().compare("name") == 0) {
+                map.insert(query.value(0).toString(),
+                           QVariant(QStringList()
+                                    << query.value(0).toString()
+                                    << query.value(1).toString()
+                                    << query.value(2).toString()));
             } else {
                 if (notes.count() == 0) {
-                    notes.append(
-                        QVariant(QStringList() << query.value(0).toString()
-                                               << query.value(1).toString()
-                                               << query.value(2).toString()));
+                    notes.append(QVariant(QStringList()
+                                          << query.value(0).toString()
+                                          << query.value(1).toString()
+                                          << query.value(2).toString()));
                 } else {
                     QString str1 = query.value(1).toString();
                     str1.truncate(str1.indexOf(","));
@@ -451,24 +436,24 @@ QVariantList MyNotesDB::getFolderNotes(const QString &foldername) const {
     }
 }
 
-QVariantList MyNotesDB::getAllNotes() const {
+QVariantList MyNotesDB::getAllNotes() const
+{
     QSqlQuery query;
-    query.prepare("SELECT name FROM Folders_" + QString::number(MagicNumber));
-    if (!query.exec())
-        throw MyNotes::Error(query.lastError().text());
+    query = prepare(QString("SELECT name FROM Folders_%1;").arg(QString::number(MagicNumber)));
     QVariantList notes;
+    if (!execute(query))
+        return notes;
     QMap<QString, QVariant> map;
+    QSqlQuery queryForNotes;
     while (query.next()) {
-        QSqlQuery queryForNotes;
-        queryForNotes.prepare("SELECT title, date, flagged FROM '" +
-                              query.value(0).toString() + "'");
-        if (!queryForNotes.exec())
-            throw MyNotes::Error(queryForNotes.lastError().text());
+        queryForNotes = prepare(QString("SELECT title, date, flagged FROM %1;").arg(query.value(0).toString()));
+        if (!execute(queryForNotes))
+            return notes;
         while (queryForNotes.next()) {
             if (queryForNotes.value(0) != Invalid &&
                 queryForNotes.value(1) != Invalid &&
                 queryForNotes.value(2) != Invalid) {
-                if (appSettings.readSortingOrder().compare("name") == 0) {
+                if (appSettings->readSortingOrder().compare("name") == 0) {
                     map.insert(queryForNotes.value(0).toString(),
                                QVariant(QStringList()
                                         << queryForNotes.value(0).toString()
@@ -531,14 +516,17 @@ QVariantList MyNotesDB::getAllNotes() const {
 }
 
 QVariantList MyNotesDB::getNoteData(const QString &title, const QString &date,
-                                    QString foldername) const {
+                                    QString foldername) const
+{
     if (foldername.compare("") != 0) {
         QSqlQuery query;
-        query.prepare("SELECT title, note, date, flagged FROM '" + foldername +
-                      "' WHERE title='" + title + "' AND date='" + date + "'");
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT title, note, date, flagged FROM '" +
+                        foldername + "' WHERE title = ? AND date = ?;");
+        query.bindValue(0, title);
+        query.bindValue(1, date);
         QVariantList notedata;
+        if (!execute(query))
+            return notedata;
         query.next();
         if (query.value(0) != Invalid)
             notedata << query.value(0).toString() << query.value(1).toString()
@@ -546,19 +534,21 @@ QVariantList MyNotesDB::getNoteData(const QString &title, const QString &date,
         return notedata;
     } else {
         QSqlQuery query;
-        query.prepare("SELECT name FROM Folders_" +
-                      QString::number(MagicNumber));
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT name FROM Folders_" +
+                        QString::number(MagicNumber) + ";");
         QVariantList notedata;
+        if (!execute(query))
+            return notedata;
+        QSqlQuery queryForNoteData;
         while (query.next()) {
             if (query.value(0) != Invalid) {
-                QSqlQuery queryForNoteData;
-                queryForNoteData.prepare(
-                    "SELECT title, note, date, flagged FROM '" +
-                    query.value(0).toString() + "' WHERE title='" + title +
-                    "' AND date='" + date + "'");
-                if (queryForNoteData.exec()) {
+                queryForNoteData =
+                    prepare("SELECT title, note, date, flagged FROM '" +
+                            query.value(0).toString() +
+                            "' WHERE title = ? AND date = ?;");
+                queryForNoteData.bindValue(0, title);
+                queryForNoteData.bindValue(1, date);
+                if (execute(queryForNoteData)) {
                     queryForNoteData.next();
                     if (queryForNoteData.isValid()) {
                         notedata << queryForNoteData.value(0).toString()
@@ -576,23 +566,25 @@ QVariantList MyNotesDB::getNoteData(const QString &title, const QString &date,
 
 QVariantList MyNotesDB::findNote(const QString &searchText,
                                  const QString &date_after,
-                                 const QString &date_before) const {
+                                 const QString &date_before) const
+{
     QSqlQuery query;
-    query.prepare("SELECT name FROM Folders_" + QString::number(MagicNumber));
-    if (!query.exec())
-        throw MyNotes::Error(query.lastError().text());
+    query = prepare("SELECT name FROM Folders_" + QString::number(MagicNumber) +
+                    ";");
     QVariantList foundNotes;
+    if (!execute(query))
+        return foundNotes;
     QMap<QString, QVariant> map;
     while (query.next()) {
         QSqlQuery queryForNotes;
         if (query.value(0) != Invalid) {
-            queryForNotes.prepare("SELECT title, note, date, flagged FROM '" +
-                                  query.value(0).toString() + "'");
-            if (!queryForNotes.exec())
-                throw MyNotes::Error(queryForNotes.lastError().text());
+            queryForNotes = prepare("SELECT title, note, date, flagged FROM '" +
+                                    query.value(0).toString() + "';");
+            if (!execute(queryForNotes))
+                return foundNotes;
             while (queryForNotes.next()) {
                 if (queryForNotes.value(0) != Invalid) {
-                    if (appSettings.readSortingOrder().compare("name") == 0) {
+                    if (appSettings->readSortingOrder().compare("name") == 0) {
                         QString dateStr = queryForNotes.value(2).toString();
                         dateStr.truncate(dateStr.indexOf(","));
                         QVariant notes = QVariant(
@@ -639,8 +631,8 @@ QVariantList MyNotesDB::findNote(const QString &searchText,
                             } else {
                                 if (title.contains(QRegExp(
                                         searchText, Qt::CaseInsensitive))) {
-                                    if (!map.contains(queryForNotes.value(0)
-                                                          .toString()))
+                                    if (!map.contains(
+                                             queryForNotes.value(0).toString()))
                                         map.insert(
                                             queryForNotes.value(0).toString(),
                                             notes);
@@ -743,32 +735,34 @@ QVariantList MyNotesDB::findNote(const QString &searchText,
     }
 }
 
-QVariantList MyNotesDB::getFlaggedNotes() const {
+QVariantList MyNotesDB::getFlaggedNotes() const
+{
     QSqlQuery query;
-    query.prepare("SELECT name FROM Folders_" + QString::number(MagicNumber));
-    if (!query.exec())
-        throw MyNotes::Error(query.lastError().text());
+    query = prepare("SELECT name FROM Folders_" + QString::number(MagicNumber) +
+                    ";");
     QVariantList foundFlaggedNotes;
+    if (!execute(query))
+        return foundFlaggedNotes;
     QMap<QString, QVariant> map;
+    QSqlQuery queryForFlaggedNotes;
     while (query.next()) {
-        QSqlQuery queryForFlaggedNotes;
         if (query.value(0) != Invalid) {
-            queryForFlaggedNotes.prepare(
-                "SELECT title, note, date, flagged FROM '" +
-                query.value(0).toString() + "'");
-            if (!queryForFlaggedNotes.exec())
-                throw MyNotes::Error(queryForFlaggedNotes.lastError().text());
+            queryForFlaggedNotes =
+                prepare("SELECT title, note, date, flagged FROM '" +
+                        query.value(0).toString() + "';");
+            if (!execute(queryForFlaggedNotes))
+                return foundFlaggedNotes;
             while (queryForFlaggedNotes.next()) {
                 if (queryForFlaggedNotes.value(3).toInt() != Invalid &&
                     queryForFlaggedNotes.value(3).toInt()) {
-                    if (appSettings.readSortingOrder().compare("name") == 0) {
+                    if (appSettings->readSortingOrder().compare("name") == 0) {
                         map.insert(
                             queryForFlaggedNotes.value(0).toString(),
-                            QVariant(QStringList()
-                                     << queryForFlaggedNotes.value(0).toString()
-                                     << queryForFlaggedNotes.value(1).toString()
-                                     << queryForFlaggedNotes.value(2)
-                                            .toString()));
+                            QVariant(
+                                QStringList()
+                                << queryForFlaggedNotes.value(0).toString()
+                                << queryForFlaggedNotes.value(1).toString()
+                                << queryForFlaggedNotes.value(2).toString()));
                     } else {
                         if (foundFlaggedNotes.count() == 0) {
                             foundFlaggedNotes.append(QVariant(
@@ -834,61 +828,79 @@ QVariantList MyNotesDB::getFlaggedNotes() const {
 void MyNotesDB::updateNote(const QString &title, const QString &note,
                            const QString &date, const QString &flagged,
                            const QString &old_title, const QString &old_date,
-                           const QString &duedate, QString foldername) const {
+                           const QString &duedate, QString foldername) const
+{
     Q_UNUSED(date)
     if (foldername.compare("") != 0) {
         QSqlQuery query;
         QDate d = QDate::currentDate();
         QTime t = QTime::currentTime();
-        if (!query.exec("UPDATE '" + foldername + "' SET title='" + title +
-                        "', note='" + note + "', date='" +
-                        d.toString("ddd d MMM yyyy") + ", " +
-                        t.toString("hh:mm:ss") + "', flagged=" + flagged +
-                        ", duedate='" + duedate + "' WHERE title='" +
-                        old_title + "' AND date='" + old_date + "'"))
-            qWarning("Could not update note %s in folder %s\n%s",
-                     qPrintable(title),
-                     qPrintable(foldername),
-                     qPrintable(query.lastError().text()));
+        query = prepare("UPDATE '" + foldername + "' SET title = ?, note = ?,"
+                                                  " date = ?, flagged = ?, "
+                                                  "duedate = ? WHERE title = ? "
+                                                  "AND date = ?;");
+        query.bindValue(0, title);
+        query.bindValue(1, note);
+        query.bindValue(2, d.toString("ddd d MMM yyyy") + ", " +
+                               t.toString("hh:mm:ss"));
+        query.bindValue(3, flagged);
+        query.bindValue(4, duedate);
+        query.bindValue(5, old_title);
+        query.bindValue(6, old_date);
+        execute(query);
     } else {
         QSqlQuery query;
-        query.prepare("SELECT name FROM Folders_" +
-                      QString::number(MagicNumber));
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT name FROM Folders_" +
+                      QString::number(MagicNumber) + ";");
+        if (!execute(query))
+            return;
+        QSqlQuery queryToUpdateNoteData;
         while (query.next()) {
-            QSqlQuery queryToUpdateNoteData;
             if (query.value(0) != Invalid) {
                 QDate d = QDate::currentDate();
                 QTime t = QTime::currentTime();
-                if (!queryToUpdateNoteData.exec(
-                        "UPDATE '" + query.value(0).toString() +
-                        "' SET title='" + title + "', note= '" + note +
-                            "', date='" + d.toString("ddd d MMM yyyy") + ", " +
-                        t.toString("hh:mm:ss") + "', flagged=" + flagged +
-                        ", duedate='" + duedate + "' WHERE title='" +
-                        old_title + "' AND date='" + old_date + "'"))
-                    qWarning("Could not update note %s in folder %s\n%s",
-                             qPrintable(title),
-                             qPrintable(query.value(0).toString()),
-                             qPrintable(queryToUpdateNoteData.lastError().text()));
+                queryToUpdateNoteData =
+                    prepare("UPDATE '" + query.value(0).toString() +
+                            "' SET title = ?, note = ?,"
+                            " date = ?, flagged = ?, duedate = ? WHERE title = "
+                            "? AND date = ?;");
+                queryToUpdateNoteData.bindValue(0, title);
+                queryToUpdateNoteData.bindValue(1, note);
+                queryToUpdateNoteData.bindValue(
+                    2, d.toString("ddd d MMM yyyy") + ", " +
+                           t.toString("hh:mm:ss"));
+                queryToUpdateNoteData.bindValue(3, flagged);
+                queryToUpdateNoteData.bindValue(4, duedate);
+                queryToUpdateNoteData.bindValue(5, old_title);
+                queryToUpdateNoteData.bindValue(6, old_date);
+                execute(queryToUpdateNoteData);
             }
         }
     }
 }
-
+/*
 bool MyNotesDB::renameFolder(const QString &new_foldername,
-                             const QString &old_foldername) const {
+                             const QString &old_foldername) const
+{
     if (new_foldername.compare("") != 0 && old_foldername.compare("") != 0 &&
         new_foldername.compare(old_foldername) != 0 &&
         db.tables().contains(old_foldername)) {
         if (!db.tables().contains(new_foldername)) {
             QSqlQuery query;
+            query = prepare("ALTER TABLE '" + old_foldername + "' RENAME TO '" +
+                            new_foldername + "';");
+            if (!execute(query))
+                return false;
+            query = prepare("UPDATE Folders_" + QString::number(MagicNumber) +
+                            " SET name = ? WHERE name = ?;");
+            query.bindValue(0, new_foldername);
+            query.bindValue(1, old_foldername);
+            if (!execute(query))
+                return false;
             if (!query.exec("ALTER TABLE '" + old_foldername + "' RENAME TO '" +
-                            new_foldername + "'"))
+                            new_foldername + "';"))
                 qWarning("Could not rename folder %s to %s\n%s",
-                         qPrintable(old_foldername),
-                         qPrintable(new_foldername),
+                         qPrintable(old_foldername), qPrintable(new_foldername),
                          qPrintable(query.lastError().text()));
             if (!query.exec("UPDATE Folders_" + QString::number(MagicNumber) +
                             " SET name = '" + new_foldername +
@@ -899,52 +911,72 @@ bool MyNotesDB::renameFolder(const QString &new_foldername,
         } else {
             qWarning("There already exists a folder named %s. "
                      "Please choose another name for the folder.",
-                 qPrintable(new_foldername));
+                     qPrintable(new_foldername));
             return false;
         }
     }
     return true;
 }
-
+*/
 void MyNotesDB::deleteFlagFromNote(const QString &title, const QString &date,
                                    const QString &flagged,
-                                   QString foldername) const {
+                                   QString foldername) const
+{
     if (foldername.compare("") != 0) {
         QSqlQuery query;
+        query = prepare("UPDATE '" + foldername + "' SET flagged = ?'"
+                        " WHERE title = ? AND date = ?;");
+        query.bindValue(0, title);
+        query.bindValue(1, date);
+        execute(query);
+        /*
         if (!query.exec("UPDATE '" + foldername + "' SET flagged='" + flagged +
                         "' WHERE title='" + title + "' AND date='" + date +
                         "'"))
             qWarning("Could not update note's %s flag value to %s",
                      qPrintable(title), qPrintable(flagged));
+        */
     } else {
         QSqlQuery query;
-        query.prepare("SELECT name FROM Folders_" +
-                      QString::number(MagicNumber));
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT name FROM Folders_" +
+                      QString::number(MagicNumber) + ";");
+        if (!execute(query))
+            return;
+        QSqlQuery queryToUpdateNoteFlagValue;
         while (query.next()) {
-            QSqlQuery queryToUpdateNoteFlagValue;
             if (query.value(0) != Invalid) {
+                queryToUpdateNoteFlagValue = prepare("UPDATE '" + query.value(0).toString() +
+                                                     "' SET flagged = ? WHERE title = ?'"
+                                                     " AND date = ?;");
+                queryToUpdateNoteFlagValue.bindValue(0, flagged);
+                queryToUpdateNoteFlagValue.bindValue(1, title);
+                queryToUpdateNoteFlagValue.bindValue(2, date);
+                execute(queryToUpdateNoteFlagValue);
+                /*
                 if (!queryToUpdateNoteFlagValue.exec(
-                        "UPDATE '" + query.value(0).toString() +
-                        "' SET flagged = " + flagged + " WHERE title = '" +
-                        title + "' AND date = '" + date + "'"))
+                         "UPDATE '" + query.value(0).toString() +
+                         "' SET flagged = " + flagged + " WHERE title = '" +
+                         title + "' AND date = '" + date + "'"))
                     qWarning("Could not update note's %s flag value to %s",
                              qPrintable(title), qPrintable(flagged));
+                */
             }
         }
     }
 }
 
 QStringList MyNotesDB::getNoteDueDate(const QString &title, const QString &date,
-                                      QString foldername) const {
+                                      QString foldername) const
+{
     if (foldername.compare("") != 0) {
         QSqlQuery query;
-        query.prepare("SELECT duedate FROM '" + foldername + "' WHERE title='" +
-                      title + "' AND date='" + date + "'");
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT duedate FROM '" + foldername + "' WHERE title = ?"
+                        " AND date = ?;");
+        query.bindValue(0, title);
+        query.bindValue(1, date);
         QStringList duedate;
+        if (!execute(query))
+            return duedate;
         query.next();
         if (query.value(0) != Invalid && query.value(0).toString() != "") {
             QString date_ = query.value(0).toString();
@@ -957,18 +989,20 @@ QStringList MyNotesDB::getNoteDueDate(const QString &title, const QString &date,
         return duedate;
     } else {
         QSqlQuery query;
-        query.prepare("SELECT name FROM Folders_" +
-                      QString::number(MagicNumber));
-        if (!query.exec())
-            throw MyNotes::Error(query.lastError().text());
+        query = prepare("SELECT name FROM Folders_" +
+                      QString::number(MagicNumber) + ";");
         QStringList duedate;
+        if (!execute(query))
+            return duedate;
+        QSqlQuery queryForDueDate;
         while (query.next()) {
             if (query.value(0) != Invalid) {
-                QSqlQuery queryForDueDate;
-                queryForDueDate.prepare(
+                queryForDueDate = prepare(
                     "SELECT duedate FROM '" + query.value(0).toString() +
-                    "' WHERE title='" + title + "' AND date='" + date + "'");
-                if (queryForDueDate.exec()) {
+                    "' WHERE title = ? AND date = ?;");
+                queryForDueDate.bindValue(0, title);
+                queryForDueDate.bindValue(1, date);
+                if (execute(queryForDueDate)) {
                     queryForDueDate.next();
                     if (queryForDueDate.isValid() &&
                         queryForDueDate.value(0).toString() != "") {
@@ -986,19 +1020,20 @@ QStringList MyNotesDB::getNoteDueDate(const QString &title, const QString &date,
     }
 }
 
-QVariantList MyNotesDB::checkDueDates() const {
+QVariantList MyNotesDB::checkDueDates() const
+{
     QSqlQuery query;
-    query.prepare("SELECT name FROM Folders_" + QString::number(MagicNumber));
-    if (!query.exec())
-        throw MyNotes::Error(query.lastError().text());
+    query = prepare("SELECT name FROM Folders_" + QString::number(MagicNumber) + ";");
     QVariantList duedates;
+    if (!execute(query))
+        return duedates;
+    QSqlQuery queryForDueDates;
     while (query.next()) {
         if (query.value(0) != Invalid) {
-            QSqlQuery queryForDueDates;
-            queryForDueDates.prepare("SELECT title, date, duedate FROM '" +
-                                     query.value(0).toString() + "'");
-            if (!queryForDueDates.exec())
-                throw MyNotes::Error(queryForDueDates.lastError().text());
+            queryForDueDates = prepare("SELECT title, date, duedate FROM '" +
+                                       query.value(0).toString() + "';");
+            if (!execute(queryForDueDates))
+                return duedates;
             while (queryForDueDates.next()) {
                 if (queryForDueDates.value(2) != Invalid &&
                     queryForDueDates.value(2).toString() != "") {
@@ -1009,9 +1044,9 @@ QVariantList MyNotesDB::checkDueDates() const {
                     QTime time = QTime().fromString(timeStr, "hh:mm");
                     QDate date = QDate().fromString(dateStr, "d MMM yyyy");
                     QDate today = QDate().currentDate();
-                    if ((date == today && time >= QTime().currentTime()) ||
+                    if ((date == today && time > QTime().currentTime()) ||
                         (date.addDays(-1) == today &&
-                         time <= QTime().currentTime())) {
+                         time < QTime().currentTime())) {
                         if (duedates.isEmpty()) {
                             duedates.append(QVariant(
                                 QStringList()
@@ -1048,22 +1083,34 @@ QVariantList MyNotesDB::checkDueDates() const {
                                 k,
                                 QVariant(QStringList()
                                          << queryForDueDates.value(0).toString()
-                                         << QString("%1 %2").arg(dateStr)
-                                                .arg(timeStr)));
+                                         << QString("%1 %2").arg(dateStr).arg(
+                                                timeStr)));
                         }
-                    } else if (date == today && time < QTime().currentTime()) {
+                    } else if ((date == today && time < QTime().currentTime()) ||
+                               date < today) {
                         QSqlQuery queryToUpdateNoteDueDateValue;
+                        queryToUpdateNoteDueDateValue = prepare("UPDATE '" + query.value(0).toString() +
+                                                                "' SET duedate = ?"
+                                                                " WHERE title = ? AND date = ?;");
+                        queryToUpdateNoteDueDateValue.bindValue(0, "");
+                        queryToUpdateNoteDueDateValue.bindValue(1, queryForDueDates.value(0).toString());
+                        queryToUpdateNoteDueDateValue.bindValue(2, queryForDueDates.value(1).toString());
+                        execute(queryToUpdateNoteDueDateValue);
+
+                        /*
                         if (!queryToUpdateNoteDueDateValue.exec(
-                                "UPDATE '" + query.value(0).toString() +
-                                "' SET duedate = '" + "" + "' WHERE title = '" +
-                                queryForDueDates.value(0).toString() +
-                                "' AND date = '" +
-                                queryForDueDates.value(1).toString() + "'"))
+                                 "UPDATE '" + query.value(0).toString() +
+                                 "' SET duedate = '" + "" +
+                                 "' WHERE title = '" +
+                                 queryForDueDates.value(0).toString() +
+                                 "' AND date = '" +
+                                 queryForDueDates.value(1).toString() + "'"))
                             qWarning(
                                 "Could not set note's %s duedate value to %s",
-                                qPrintable(queryForDueDates.value(0)
-                                               .toString()),
+                                qPrintable(
+                                    queryForDueDates.value(0).toString()),
                                 qPrintable("an empty value"));
+                        */
                     }
                 }
             }

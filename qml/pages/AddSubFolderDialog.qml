@@ -14,6 +14,9 @@ Dialog {
         width: parent.width
         anchors.centerIn: parent
 
+        dialogType: "subfolder"
+        parent_: parentFolder
+
         onActiveChanged: {
             if (active === true) {
                 canAccept = false;
@@ -51,6 +54,7 @@ Dialog {
                  anchors.margins: Theme.paddingSmall
                  color: "steelblue"
                  placeholderText: qsTr("Add subfolder name...")
+                 label: qsTr("Subfolder name")
                  validator: RegExpValidator { regExp: /^[0-9\_\#\-A-Za-z\s]+$/ }
                  errorHighlight: text ? !acceptableInput : false
                  inputMethodHints: Qt.ImhNoPredictiveText
@@ -73,12 +77,15 @@ Dialog {
             }
         ]
     }
-    onAccepted: {
-        if (foldername.text !== "" && parentFolder !== "")
+    onDone: {
+        if (foldername.text !== "")
             if (!mynotesdb.addSubFolder(foldername.text, parentFolder)) {
                 banner.active = true;
-                banner.text = qsTr("Folder " + foldername.text + " already exists.\n" +
-                              "Please choose another name for the folder.");
+                banner.text = qsTr("Folder %1 already exists.\n" +
+                                   "Please choose another name for the subfolder.").arg(foldername.text)
+            } else {
+                banner.active = false;
             }
+
     }
 }

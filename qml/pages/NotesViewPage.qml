@@ -18,22 +18,23 @@ Page {
         notes_ = mynotesdb.getFolderNotes(foldername);
         if (subfolders_.length !== 0) {
             var i = 0
-            for (i; i < subfolders_.length; ++i) {
+            for (; i < subfolders_.length; ++i) {
                 listModel.append({"name": subfolders_[i], "datenumber": "", "imagesource1": "image://theme/icon-m-folder",
                                   "imagesource2": "", "scale_factor": 0.5})
             }
         }
         var k = 0;
         var count = notes_.length
-        for (k; k < count; ++k) {
-            if (parseInt(notes_[k][2])) {
-                listModel.append({"name": notes_[k][0], "datenumber": notes_[k][1].substring(0,notes_[k][1].indexOf(",")), "imagesource1": "qrc:/images/images/notepad.png",
-                                  "imagesource2": "qrc:/images/images/red_flag.png", "scale_factor": 0.9})
-            } else {
-                listModel.append({"name": notes_[k][0], "datenumber": notes_[k][1].substring(0,notes_[k][1].indexOf(",")),
-                                  "imagesource1": "qrc:/images/images/notepad.png", "imagesource2": "", "scale_factor": 0.9})
+        if (count !== 0)
+            for (; k < count; ++k) {
+                if (parseInt(notes_[k][2])) {
+                    listModel.append({"name": notes_[k][0], "datenumber": notes_[k][1].substring(0,notes_[k][1].indexOf(",")), "imagesource1": "qrc:/images/images/notepad.png",
+                                      "imagesource2": "qrc:/images/images/red_flag.png", "scale_factor": 0.9})
+                } else {
+                    listModel.append({"name": notes_[k][0], "datenumber": notes_[k][1].substring(0,notes_[k][1].indexOf(",")),
+                                      "imagesource1": "qrc:/images/images/notepad.png", "imagesource2": "", "scale_factor": 0.9})
+                }
             }
-        }
         subfolders = subfolders_;
         notes = notes_;
     }
@@ -50,14 +51,12 @@ Page {
         }
         spacing: Theme.paddingLarge
         PullDownMenu {
+            /*
             MenuItem {
-                text: qsTr("Create note")
-                onClicked: pageStack.push(Qt.resolvedUrl("AddNoteDialog.qml"),{"foldername": foldername})
+                text: qsTr("Rename folder")
+                onClicked: pageStack.push(Qt.resolvedUrl("RenameFolderDialog.qml"))
             }
-            MenuItem {
-                text: qsTr("Create subfolder")
-                onClicked: pageStack.push(Qt.resolvedUrl("AddSubFolderDialog.qml"),{"parentFolder": foldername})
-            }
+            */
             MenuItem {
                 text: qsTr("Delete folder content")
                 onClicked:{
@@ -66,8 +65,12 @@ Page {
                 }
             }
             MenuItem {
-                text: qsTr("Rename folder")
-                onClicked: pageStack.push(Qt.resolvedUrl("RenameFolderDialog.qml"))
+                text: qsTr("Create subfolder")
+                onClicked: pageStack.push(Qt.resolvedUrl("AddSubFolderDialog.qml"),{"parentFolder": foldername})
+            }
+            MenuItem {
+                text: qsTr("Create note")
+                onClicked: pageStack.push(Qt.resolvedUrl("AddNoteDialog.qml"),{"foldername": foldername})
             }
         }
         delegate: folderDelegate
@@ -87,13 +90,14 @@ Page {
         BackgroundItem {
             id: bgItem
             width: listview.width
-            height: col.childrenRect.height
+            height: Theme.itemSizeMedium
             Column {
                 id: col
                 spacing: 0
                 anchors {
                     left: parent.left
                     leftMargin: Theme.paddingLarge
+                    verticalCenter: parent.verticalCenter
                 }
                 Row {
                     id: row
@@ -120,6 +124,7 @@ Page {
                         id: label
                         text: name
                         font.pixelSize: Theme.fontSizeMedium
+                        color: bgItem.highlighted ? Theme.highlightColor : Theme.primaryColor
                     }
                 }
                 Label {

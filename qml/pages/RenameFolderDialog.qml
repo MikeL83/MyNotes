@@ -50,6 +50,7 @@ Dialog {
                  anchors.margins: Theme.paddingSmall
                  color: Theme.secondaryHighlightColor
                  placeholderText: qsTr("Current folder...")
+                 label: qsTr("Old folder")
                  validator: RegExpValidator { regExp: /^[0-9\_\#A-Za-z\s]+$/ }
                  errorHighlight: text ? !acceptableInput : false
                  inputMethodHints: Qt.ImhNoPredictiveText
@@ -61,6 +62,7 @@ Dialog {
                  anchors.margins: Theme.paddingSmall
                  color: Theme.secondaryHighlightColor
                  placeholderText: qsTr("Rename folder...")
+                 label: qsTr("New folder")
                  validator: RegExpValidator { regExp: /^[0-9\_\#A-Za-z\s]+$/ }
                  errorHighlight: text ? !acceptableInput : false
                  inputMethodHints: Qt.ImhNoPredictiveText

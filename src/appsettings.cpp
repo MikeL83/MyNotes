@@ -4,9 +4,8 @@
 #include <QSettings>
 #include "appsettings.h"
 
-AppSettings::AppSettings(QObject *parent) : QObject(parent) {
-    QCoreApplication::setOrganizationName("MyNotesSoftware");
-    QCoreApplication::setApplicationName("MyNotes");
+AppSettings::AppSettings(QObject *parent) : QObject(parent)
+{
 
     settings = QSharedPointer<QSettings>(new QSettings);
 
@@ -16,22 +15,27 @@ AppSettings::AppSettings(QObject *parent) : QObject(parent) {
         settings->setValue("font/fontSize", 30);
 }
 
-QString AppSettings::readSortingOrder() const {
+QString AppSettings::readSortingOrder() const
+{
     return settings->value("sort/sortOrder").toString();
 }
 
-void AppSettings::writeSortOrder(const QString &order) {
+void AppSettings::writeSortOrder(const QString &order)
+{
     settings->setValue("sort/sortOrder", order);
 }
 
-int AppSettings::readFontSize() const {
+int AppSettings::readFontSize() const
+{
     return settings->value("font/fontSize").toInt();
 }
 
-void AppSettings::writeFontSize(const int size) {
+void AppSettings::writeFontSize(const int size)
+{
     settings->setValue("font/fontSize", size);
 }
 
-void AppSettings::callSync() {
+void AppSettings::callSync()
+{
     settings->sync();
 }

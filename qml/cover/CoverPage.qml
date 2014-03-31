@@ -1,9 +1,21 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../scripts/mynotesJS.js" as AppJS
 
 CoverBackground {
+    id: cover
     property int number_of_nofications: 0
     property bool active: status === Cover.Active
+
+    CoverActionList {
+        id: coverAction
+        CoverAction {
+            iconSource: "image://theme/icon-cover-sync"
+            onTriggered: {
+                checkUpdates();
+            }
+        }
+    }
 
     Timer {
         id: timer
@@ -26,6 +38,8 @@ CoverBackground {
                 listModel.append({"name": duedates[i][0], "duedate": duedates[i][1]})
             }
             number_of_nofications = count;
+
+            AppJS.NUMBEROFNOTIFICATIONS = count;
         }
     }
 
@@ -81,6 +95,7 @@ CoverBackground {
                 text: "new\nnotifications\n\n"
                 font.family: Theme.fontFamily
                 font.pixelSize: Math.floor(label1.font.pixelSize/2.2)
+                elide: Text.ElideRight
             }
             states: [
                 State {
@@ -120,7 +135,7 @@ CoverBackground {
         id: coverDelegate
         BackgroundItem {
             id: bgItem
-            width: coverListView.width
+            width: coverListView.width*0.9
             height: col.childrenRect.height + Theme.paddingSmall
             Column {
                 id: col
@@ -129,11 +144,14 @@ CoverBackground {
                     left: parent.left
                     leftMargin: Theme.paddingLarge
                 }
-                Label {
+                Text {
                     id: label
+                    width: coverListView.width*0.9
                     text: name
                     font.pixelSize: Theme.fontSizeSmall
                     color: "#FF6633"
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
                 }
                 Label {
                     id: date
@@ -164,9 +182,7 @@ CoverBackground {
     }
 
     onActiveChanged: {
-        if (active) {
-            checkUpdates();
-        }
+        checkUpdates();
     }
 }
 

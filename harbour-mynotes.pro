@@ -8,9 +8,7 @@
 #         - icon definition filename in desktop file must be changed
 TARGET = harbour-mynotes
 
-CONFIG += sailfishapp
-
-QMAKE_CXXFLAGS += -std=c++0x
+CONFIG += sailfishapp c++11
 
 QT += sql
 

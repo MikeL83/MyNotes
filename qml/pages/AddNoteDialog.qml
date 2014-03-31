@@ -43,6 +43,7 @@ Dialog {
                  focus: true
                  width: dialog.width
                  placeholderText: qsTr("Add title...")
+                 label: qsTr("Note title")
                  validator: RegExpValidator { regExp: /^[0-9\_\#\-A-Za-z\s]+$/ }
                  errorHighlight: text ? !acceptableInput : false
                  inputMethodHints: Qt.ImhNoPredictiveText

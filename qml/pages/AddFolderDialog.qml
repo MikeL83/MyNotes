@@ -11,6 +11,7 @@ Dialog {
         id: banner
         width: parent.width
         anchors.centerIn: parent
+        dialogType: "folder"
 
         onActiveChanged: {
             if (active === true) {
@@ -49,6 +50,7 @@ Dialog {
                  anchors.margins: Theme.paddingSmall
                  color: "steelblue"
                  placeholderText: qsTr("Add folder name...")
+                 label: qsTr("Folder name")
                  validator: RegExpValidator { regExp: /^[0-9\_\#\-A-Za-z\s]+$/ }
                  errorHighlight: text ? !acceptableInput : false
                  inputMethodHints: Qt.ImhNoPredictiveText
@@ -71,12 +73,15 @@ Dialog {
             }
         ]
     }
-    onAccepted: {
+
+    onDone: {
         if (foldername.text !== "")
             if (!mynotesdb.addFolder(foldername.text)) {
                 banner.active = true;
-                banner.text = qsTr("Folder " + foldername.text + " already exists.\n" +
-                              "Please choose another name for the folder.");
+                banner.text = qsTr("Folder %1 already exists.\n" +
+                                   "Please choose another name for the folder.").arg(foldername.text)
+            } else {
+                banner.active = false;
             }
 
     }

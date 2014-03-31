@@ -26,6 +26,7 @@ Dialog {
                 left: parent.left
             }
         }
+
         Column {
             anchors {
                 top: dialogHeader.bottom

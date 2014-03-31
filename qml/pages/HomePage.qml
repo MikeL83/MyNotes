@@ -1,6 +1,5 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-//import io.thp.pyotherside 1.0
 
 Page {
     id: mainpage
@@ -23,27 +22,29 @@ Page {
                 text: qsTr("About")
                 onClicked: pageStack.push(Qt.resolvedUrl("AboutPage.qml"))
             }
+            /*
             MenuItem {
-                text: qsTr("Create folder")
-                onClicked: pageStack.push(Qt.resolvedUrl("AddFolderDialog.qml"))
+                text: qsTr("Rename folder")
+                onClicked: pageStack.push(Qt.resolvedUrl("RenameFolderDialog.qml"))
+            }
+            */
+            MenuItem {
+                text: qsTr("Options")
+                onClicked: pageStack.push(Qt.resolvedUrl("OptionsDialog.qml"))
             }
             MenuItem {
                 text: qsTr("Find note")
                 onClicked: pageStack.push(Qt.resolvedUrl("FindNoteDialog.qml"))
             }
             MenuItem {
-                text: qsTr("Options")
-                onClicked: pageStack.push(Qt.resolvedUrl("OptionsDialog.qml"))
-            }
-            MenuItem {
-                text: qsTr("Rename folder")
-                onClicked: pageStack.push(Qt.resolvedUrl("RenameFolderDialog.qml"))
-            }
-            MenuItem {
                 text: qsTr("Show flagged")
                 onClicked: {
                     pageStack.push(Qt.resolvedUrl("FoundFlaggedNotesPage.qml"))
                 }
+            }
+            MenuItem {
+                text: qsTr("Create folder")
+                onClicked: pageStack.push(Qt.resolvedUrl("AddFolderDialog.qml"))
             }
         }
         delegate: folderDelegate   
@@ -53,12 +54,13 @@ Page {
         BackgroundItem {
             id: bgItem
             width: listview.width
-            height: row.childrenRect.height
+            height: Theme.itemSizeMedium
             Row {
                 id: row
                 anchors {
                     left: parent.left
                     leftMargin: Theme.paddingMedium
+                    verticalCenter: parent.verticalCenter
                 }
                 spacing: Theme.paddingSmall
                 Image {
@@ -73,6 +75,7 @@ Page {
                     id: label
                     text: name
                     font.pixelSize: Theme.fontSizeLarge
+                    color: bgItem.highlighted ? Theme.highlightColor : Theme.primaryColor
                 }
             }
             onClicked: {

@@ -35,6 +35,7 @@ Dialog {
              anchors.margins: 0
              width: dialog.width
              placeholderText: qsTr("Search text...")
+             label: qsTr("Search note")
              validator: RegExpValidator { regExp: /^[0-9\_\#\-A-Za-z\s]+$/ }
              errorHighlight: text ? !acceptableInput : false
              inputMethodHints: Qt.ImhNoPredictiveText
